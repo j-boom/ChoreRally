@@ -16,6 +16,10 @@ class ChoresManagementViewModel: ObservableObject {
     // MARK: - Published Properties
     
     @Published var chores: [Chore] = []
+    // --- New properties for grouping and sorting ---
+    @Published var choresByCategory: [Chore.ChoreCategory: [Chore]] = [:]
+    @Published var choreCategories: [Chore.ChoreCategory] = []
+    
     @Published var errorMessage: String?
     @Published var isLoading = true
     
@@ -24,6 +28,9 @@ class ChoresManagementViewModel: ObservableObject {
     
     // This will control showing the sheet when the '+' is tapped
     @Published var shouldShowAddChoreSheet = false
+    
+    // --- New property to control editing sheet ---
+    @Published var selectedChoreForEditing: Chore?
     
     private let familyID: String
     private var listenerRegistration: ListenerRegistration?
@@ -62,6 +69,9 @@ class ChoresManagementViewModel: ObservableObject {
             
             self?.chores = fetchedChores
             
+            // --- Group and sort the chores for the view ---
+            self?.groupAndSortChores(fetchedChores)
+            
             // If the fetched chores list is empty, trigger the initial setup.
             if fetchedChores.isEmpty {
                 self?.shouldShowInitialSetup = true
@@ -70,8 +80,9 @@ class ChoresManagementViewModel: ObservableObject {
     }
     
     /// Deletes a chore from Firestore.
-    func deleteChore(at offsets: IndexSet) {
-        let choresToDelete = offsets.map { self.chores[$0] }
+    func deleteChore(in category: Chore.ChoreCategory, at offsets: IndexSet) {
+        guard let choresInCategory = choresByCategory[category] else { return }
+        let choresToDelete = offsets.map { choresInCategory[$0] }
         let db = Firestore.firestore()
         
         for chore in choresToDelete {
@@ -85,5 +96,15 @@ class ChoresManagementViewModel: ObservableObject {
                 }
             }
         }
+    }
+    
+    // MARK: - Private Methods
+    
+    private func groupAndSortChores(_ chores: [Chore]) {
+        // Group chores by their category
+        choresByCategory = Dictionary(grouping: chores, by: { $0.category })
+        
+        // Sort the categories for a consistent order in the UI
+        choreCategories = choresByCategory.keys.sorted { $0.rawValue < $1.rawValue }
     }
 }
