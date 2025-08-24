@@ -20,6 +20,11 @@ struct UserProfile: Identifiable, Codable {
     let avatarSymbolName: String
     let isParent: Bool
     
+    // --- These properties are now optional ---
+    // They will only have values for child profiles.
+    var age: Int?
+    var rate: Double?
+    
     // We can add the PIN property here later when we build that feature.
     // let pin: String?
 }

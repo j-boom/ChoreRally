@@ -21,13 +21,13 @@ class UserSelectionViewModel: ObservableObject {
     @Published var childProfiles: [UserProfile] = []
     @Published var errorMessage: String?
     
-    // --- Add new property to control onboarding ---
     @Published var shouldShowOnboarding = false
+    // --- The 'shouldShowAddUserSheet' property has been removed ---
+    // @Published var shouldShowAddUserSheet = false
     
-    // --- Add new property to handle initial loading state ---
     @Published var isLoading = true
     
-    // This will be used to store a reference to our Firestore listener.
+    var familyID: String?
     private var listenerRegistration: ListenerRegistration?
     
     init() {
@@ -35,16 +35,12 @@ class UserSelectionViewModel: ObservableObject {
     }
     
     deinit {
-        // It's crucial to remove the listener when the ViewModel is deallocated
-        // to prevent memory leaks.
         listenerRegistration?.remove()
     }
     
     // MARK: - Public Methods
     
     func fetchProfiles() {
-        // --- This method has been refactored for the new architecture ---
-        
         guard let currentUserID = Auth.auth().currentUser?.uid else {
             errorMessage = "Error: Not logged in."
             isLoading = false
@@ -53,9 +49,7 @@ class UserSelectionViewModel: ObservableObject {
         
         let db = Firestore.firestore()
         
-        // STEP 1: Find the user's familyID from the 'users' collection.
         db.collection("users").document(currentUserID).getDocument { [weak self] (document, error) in
-            // --- Make sure to stop loading once the check is complete ---
             defer { self?.isLoading = false }
             
             if let error = error {
@@ -63,13 +57,10 @@ class UserSelectionViewModel: ObservableObject {
                 return
             }
             
-            // --- Check if a family document exists for the user ---
             if let familyID = try? document?.data(as: UserModel.self).familyID {
-                // If a familyID exists, listen for profile updates.
+                self?.familyID = familyID
                 self?.listenForProfileChanges(familyID: familyID, db: db)
             } else {
-                // --- If no familyID is found, trigger the onboarding flow ---
-                print("No family found for this user. Triggering onboarding.")
                 self?.shouldShowOnboarding = true
             }
         }
@@ -99,18 +90,13 @@ class UserSelectionViewModel: ObservableObject {
     }
     
     func profileTapped(profile: UserProfile) {
-        // Here we will add the navigation logic based on which profile was tapped.
         print("\(profile.name) was tapped. ID: \(profile.id ?? "N/A")")
-        
-        if profile.isParent {
-            // Navigate to parent PIN entry / dashboard
-        } else {
-            // Navigate to child PIN entry / dashboard
-        }
     }
     
+    // --- The 'addUserTapped' function has been removed ---
+    /*
     func addUserTapped() {
-        // Navigate to the "Add User" screen.
-        print("Add User was tapped.")
+        shouldShowAddUserSheet = true
     }
+    */
 }
