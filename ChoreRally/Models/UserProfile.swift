@@ -9,22 +9,19 @@
 //
 
 import Foundation
-import FirebaseFirestore // Required for @DocumentID
+import FirebaseFirestore
 
-struct UserProfile: Identifiable, Codable {
-    
-    // This property wrapper maps the Firestore document ID to this property.
+struct UserProfile: Identifiable, Codable, Hashable {
     @DocumentID var id: String?
     
-    let name: String
-    let avatarSymbolName: String
-    let isParent: Bool
+    var name: String
+    var avatarSymbolName: String
+    var isParent: Bool
     
-    // --- These properties are now optional ---
-    // They will only have values for child profiles.
+    // --- Child-specific properties ---
     var age: Int?
     var rate: Double?
     
-    // We can add the PIN property here later when we build that feature.
-    // let pin: String?
+    // --- Renamed for clarity: This is the list of chores a child is able to do. ---
+    var capableChoreIDs: [String]?
 }

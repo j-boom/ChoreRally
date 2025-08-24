@@ -29,7 +29,6 @@ struct ParentDashboardView: View {
                 }
             
             // --- Tab 2: Chores ---
-            // This now correctly displays the ChoresManagementView.
             ChoresManagementView(familyID: familyID)
                 .tabItem {
                     Label("Chores", systemImage: "checkmark.circle.fill")
@@ -37,7 +36,7 @@ struct ParentDashboardView: View {
             
             // --- Tab 3: Family ---
             // This is where parents will manage profiles and invite others.
-            Text("Family View")
+            FamilyManagementView(familyID: familyID)
                 .tabItem {
                     Label("Family", systemImage: "person.3.fill")
                 }
