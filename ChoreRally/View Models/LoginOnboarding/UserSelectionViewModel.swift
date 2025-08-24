@@ -22,8 +22,9 @@ class UserSelectionViewModel: ObservableObject {
     @Published var errorMessage: String?
     
     @Published var shouldShowOnboarding = false
-    // --- The 'shouldShowAddUserSheet' property has been removed ---
-    // @Published var shouldShowAddUserSheet = false
+    
+    // --- This property now drives the navigation ---
+    @Published var navigationSelection: String?
     
     @Published var isLoading = true
     
@@ -89,14 +90,6 @@ class UserSelectionViewModel: ObservableObject {
         }
     }
     
-    func profileTapped(profile: UserProfile) {
-        print("\(profile.name) was tapped. ID: \(profile.id ?? "N/A")")
-    }
-    
-    // --- The 'addUserTapped' function has been removed ---
-    /*
-    func addUserTapped() {
-        shouldShowAddUserSheet = true
-    }
-    */
+    // The profileTapped function is no longer needed for parent navigation
+    // as the NavigationLink handles it directly.
 }
