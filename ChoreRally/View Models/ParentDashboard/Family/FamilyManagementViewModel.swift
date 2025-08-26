@@ -1,13 +1,5 @@
 //
 //  FamilyManagementViewModel.swift
-//  ChoreRally
-//
-//  Created by Jim Bergren on 8/24/25.
-//
-
-
-//
-//  FamilyManagementViewModel.swift
 //  ChoreRallyApp
 //
 //  Created by Gemini on [Date].
@@ -26,6 +18,9 @@ class FamilyManagementViewModel: ObservableObject {
     @Published var parentProfiles: [UserProfile] = []
     @Published var childProfiles: [UserProfile] = []
     @Published var shouldShowAddUserSheet = false
+    
+    // This property will hold the child profile when a row is tapped, triggering the sheet.
+    @Published var selectedChildForEditing: UserProfile?
     
     private let familyID: String
     private var listenerRegistration: ListenerRegistration?

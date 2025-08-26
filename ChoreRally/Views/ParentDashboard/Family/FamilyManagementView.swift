@@ -37,8 +37,10 @@ struct FamilyManagementView: View {
                 // --- Children Section ---
                 Section(header: Text("Children")) {
                     ForEach(viewModel.childProfiles) { profile in
-                        // Tapping a child will eventually go to an edit/assign screen
-                        Text(profile.name)
+                        ChildRowView(childProfile: profile)
+                            .onTapGesture {
+                                viewModel.selectedChildForEditing = profile
+                            }
                     }
                 }
             }
@@ -55,6 +57,21 @@ struct FamilyManagementView: View {
             .sheet(isPresented: $viewModel.shouldShowAddUserSheet) {
                 AddUserProfileView(familyID: familyID)
             }
+            // This sheet presents the ChildDetailView when a child is selected.
+            .sheet(item: $viewModel.selectedChildForEditing) { childProfile in
+                // We wrap the detail view in its own NavigationView for the modal context.
+                NavigationView {
+                    ChildDetailView(childProfile: childProfile, familyID: familyID)
+                }
+            }
         }
+    }
+}
+
+// MARK: - Preview
+
+struct FamilyManagementView_Previews: PreviewProvider {
+    static var previews: some View {
+        FamilyManagementView(familyID: "previewFamilyID")
     }
 }
