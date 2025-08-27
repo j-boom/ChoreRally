@@ -12,7 +12,15 @@ import FirebaseFirestore
 import Combine
 
 // This custom struct makes it easier to pass around the combined data needed by the view.
-struct ChoreAssignmentDetails: Identifiable {
+struct ChoreAssignmentDetails: Identifiable, Hashable {
+    static func == (lhs: ChoreAssignmentDetails, rhs: ChoreAssignmentDetails) -> Bool {
+        lhs.id == rhs.id
+    }
+    
+    func hash(into hasher: inout Hasher) {
+        hasher.combine(id)
+    }
+    
     var id: String { assignment.id ?? UUID().uuidString }
     let assignment: ChoreAssignment
     let chore: Chore
@@ -27,6 +35,9 @@ class ParentHomeViewModel: ObservableObject {
     @Published var tomorrowsChores: [ChoreAssignmentDetails] = []
     @Published var isLoading = true
     
+    // This property will trigger the edit sheet.
+    @Published var assignmentToEdit: ChoreAssignmentDetails?
+    
     private let familyID: String
     private var cancellables = Set<AnyCancellable>()
     
@@ -37,7 +48,6 @@ class ParentHomeViewModel: ObservableObject {
     
     // MARK: - Public Methods
     
-    /// Updates an assignment's status to 'Approved'.
     func approve(_ details: ChoreAssignmentDetails) {
         guard let assignmentID = details.assignment.id else { return }
         let db = Firestore.firestore()
@@ -48,7 +58,6 @@ class ParentHomeViewModel: ObservableObject {
             ])
     }
     
-    /// Updates an assignment's status back to 'Assigned'.
     func reject(_ details: ChoreAssignmentDetails) {
         guard let assignmentID = details.assignment.id else { return }
         let db = Firestore.firestore()
@@ -77,7 +86,6 @@ class ParentHomeViewModel: ObservableObject {
     }
     
     private func processFetchedData(assignments: [ChoreAssignment], chores: [Chore], profiles: [UserProfile]) {
-        // Create arrays of key-value pairs first to help the compiler with type inference.
         let chorePairs = chores.compactMap { chore -> (String, Chore)? in
             guard let id = chore.id else { return nil }
             return (id, chore)
@@ -98,7 +106,6 @@ class ParentHomeViewModel: ObservableObject {
             return ChoreAssignmentDetails(assignment: assignment, chore: chore, child: child)
         }
         
-        // Explicitly specify the enum type to help the compiler.
         self.pendingApprovals = allDetails.filter { $0.assignment.status == ChoreAssignment.Status.completed }
         let upcomingChores = allDetails.filter { $0.assignment.status == ChoreAssignment.Status.assigned }
         

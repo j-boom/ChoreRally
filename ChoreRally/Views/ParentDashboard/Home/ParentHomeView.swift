@@ -12,8 +12,10 @@ import SwiftUI
 struct ParentHomeView: View {
     
     @StateObject private var viewModel: ParentHomeViewModel
+    private let familyID: String
     
     init(familyID: String) {
+        self.familyID = familyID
         _viewModel = StateObject(wrappedValue: ParentHomeViewModel(familyID: familyID))
     }
     
@@ -40,6 +42,9 @@ struct ParentHomeView: View {
                     } else {
                         ForEach(viewModel.todaysChores) { details in
                             UpcomingChoreRowView(details: details)
+                                .onTapGesture {
+                                    viewModel.assignmentToEdit = details
+                                }
                         }
                     }
                 }
@@ -52,11 +57,20 @@ struct ParentHomeView: View {
                     } else {
                         ForEach(viewModel.tomorrowsChores) { details in
                             UpcomingChoreRowView(details: details)
+                                .onTapGesture {
+                                    viewModel.assignmentToEdit = details
+                                }
                         }
                     }
                 }
             }
             .navigationTitle("Home")
+            // This sheet presents the editing view when a chore is tapped.
+            .sheet(item: $viewModel.assignmentToEdit) { details in
+                NavigationView {
+                    EditChoreAssignmentView(details: details, familyID: familyID)
+                }
+            }
         }
     }
 }
