@@ -17,6 +17,7 @@ struct UserProfile: Identifiable, Codable, Hashable {
     var name: String
     var avatarSymbolName: String
     var isParent: Bool
+    var pin: String? // New property for the parent's PIN
     
     // --- Child-specific properties ---
     var age: Int?

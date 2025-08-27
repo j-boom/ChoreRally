@@ -2,17 +2,7 @@
 //  LedgerViewModel.swift
 //  ChoreRally
 //
-//  Created by Jim Bergren on 8/26/25.
-//
-
-
-//
-//  LedgerViewModel.swift
-//  ChoreRally
-//
-//  Created by Gemini on [Date].
-//
-//  This ViewModel powers the Ledger tab.
+//  This ViewModel now uses the FirestoreService.
 //
 
 import Foundation
@@ -21,12 +11,10 @@ import Combine
 
 class LedgerViewModel: ObservableObject {
     
-    // MARK: - Published Properties
     @Published var childProfiles: [UserProfile] = []
     @Published var selectedChildID: String? = nil {
         didSet { filterAndCalculate() }
     }
-    
     @Published var filteredLedgerEntries: [ChoreAssignmentDetails] = []
     @Published var totalOwed: Double = 0.0
     
@@ -39,9 +27,6 @@ class LedgerViewModel: ObservableObject {
         fetchData()
     }
     
-    // MARK: - Public Methods
-    
-    /// Pays the total owed amount for the currently selected child.
     func paySelectedChild() {
         let choresToPay = filteredLedgerEntries
         guard !choresToPay.isEmpty else { return }
@@ -65,35 +50,29 @@ class LedgerViewModel: ObservableObject {
         }
     }
     
-    // MARK: - Private Methods
-    
     private func fetchData() {
-        let assignmentsPublisher = Firestore.firestore().collection("families").document(familyID).collection("assignments").snapshotPublisher(as: ChoreAssignment.self)
-        let choresPublisher = Firestore.firestore().collection("families").document(familyID).collection("chores").snapshotPublisher(as: Chore.self)
-        let profilesPublisher = Firestore.firestore().collection("families").document(familyID).collection("profiles").snapshotPublisher(as: UserProfile.self)
-        
-        Publishers.CombineLatest3(assignmentsPublisher, choresPublisher, profilesPublisher)
+        FirestoreService.fetchAndCombineData(familyID: familyID)
             .receive(on: DispatchQueue.main)
             .sink(receiveCompletion: { completion in
                 if case .failure(let error) = completion {
                     print("Error fetching ledger data: \(error)")
                 }
-            }, receiveValue: { [weak self] assignments, chores, profiles in
-                self?.processData(assignments: assignments, chores: chores, profiles: profiles)
+            }, receiveValue: { [weak self] familyData in
+                self?.process(familyData)
             })
             .store(in: &cancellables)
     }
     
-    private func processData(assignments: [ChoreAssignment], chores: [Chore], profiles: [UserProfile]) {
-        let choreDict = Dictionary(uniqueKeysWithValues: chores.compactMap { ($0.id, $0) })
-        let profileDict = Dictionary(uniqueKeysWithValues: profiles.compactMap { ($0.id, $0) })
+    private func process(_ data: FamilyData) {
+        let choreDict = Dictionary(data.chores.compactMap { ($0.id, $0) }, uniquingKeysWith: { (first, _) in first })
+        let profileDict = Dictionary(data.profiles.compactMap { ($0.id, $0) }, uniquingKeysWith: { (first, _) in first })
         
-        let allDetails = assignments.compactMap { assignment -> ChoreAssignmentDetails? in
+        let allDetails = data.assignments.compactMap { assignment -> ChoreAssignmentDetails? in
             guard let chore = choreDict[assignment.choreID], let child = profileDict[assignment.childProfileID] else { return nil }
             return ChoreAssignmentDetails(assignment: assignment, chore: chore, child: child)
         }
         
-        self.childProfiles = profiles.filter { !$0.isParent }.sorted { $0.name < $1.name }
+        self.childProfiles = data.profiles.filter { !$0.isParent }.sorted { $0.name < $1.name }
         self.allUnpaidChores = allDetails.filter { $0.assignment.status == .approved && $0.assignment.isPaid == false }
         
         filterAndCalculate()

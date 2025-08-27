@@ -34,12 +34,8 @@ struct LaunchView: View {
                     .padding(.top, 20)
             }
         }
-        // When the view appears, it tells the ViewModel to start its check.
-        .onAppear {
-            viewModel.checkAuthenticationState()
-        }
-        // This presents the correct destination view as a full-screen modal
-        // once the ViewModel determines where to go.
+        // The .onAppear modifier is no longer needed because the ViewModel
+        // now handles the auth check automatically in its initializer.
         .fullScreenCover(item: $viewModel.destination) { destination in
             switch destination {
             case .login:

@@ -17,8 +17,6 @@ class LaunchViewModel: ObservableObject {
     
     // MARK: - Published Properties
     
-    // This enum defines the possible destinations from the launch screen.
-    // It conforms to 'Identifiable' so it can be used with .fullScreenCover.
     enum LaunchDestination: Identifiable {
         case login
         case dashboard
@@ -28,26 +26,37 @@ class LaunchViewModel: ObservableObject {
         }
     }
     
-    // The view will listen for changes to this property. When it's set,
-    // the fullScreenCover modifier will trigger.
     @Published var destination: LaunchDestination? = nil
+    
+    // This handle will keep a reference to our authentication listener.
+    private var authStateHandle: AuthStateDidChangeListenerHandle?
+    
+    init() {
+        listenForAuthStateChanges()
+    }
+    
+    deinit {
+        // It's important to remove the listener when the view model is no longer needed.
+        if let handle = authStateHandle {
+            Auth.auth().removeStateDidChangeListener(handle)
+        }
+    }
     
     // MARK: - Public Methods
     
-    /// Checks the authentication state of the user.
-    func checkAuthenticationState() {
-        // --- This is the real Firebase authentication check ---
-        // Auth.auth().currentUser will be nil if no one is logged in.
-        if Auth.auth().currentUser != nil {
-            // If a user session exists, go to the dashboard.
+    /// Sets up a listener that continuously monitors the Firebase authentication state.
+    func listenForAuthStateChanges() {
+        // This closure is called automatically by Firebase whenever a user signs in or out.
+        authStateHandle = Auth.auth().addStateDidChangeListener { [weak self] (auth, user) in
             // We add a small delay to prevent a jarring UI flash on launch.
             DispatchQueue.main.asyncAfter(deadline: .now() + 1.5) {
-                self.destination = .dashboard
-            }
-        } else {
-            // If no user is logged in, go to the login screen.
-            DispatchQueue.main.asyncAfter(deadline: .now() + 1.5) {
-                self.destination = .login
+                if user != nil {
+                    // If a user exists, navigate to the dashboard.
+                    self?.destination = .dashboard
+                } else {
+                    // If no user is logged in, navigate to the login screen.
+                    self?.destination = .login
+                }
             }
         }
     }

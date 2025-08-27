@@ -2,40 +2,19 @@
 //  ParentHomeViewModel.swift
 //  ChoreRally
 //
-//  Created by Gemini on [Date].
-//
-//  This ViewModel powers the main Parent Home dashboard view.
+//  This ViewModel now uses the FirestoreService.
 //
 
 import Foundation
 import FirebaseFirestore
 import Combine
 
-// This custom struct makes it easier to pass around the combined data needed by the view.
-struct ChoreAssignmentDetails: Identifiable, Hashable {
-    static func == (lhs: ChoreAssignmentDetails, rhs: ChoreAssignmentDetails) -> Bool {
-        lhs.id == rhs.id
-    }
-    
-    func hash(into hasher: inout Hasher) {
-        hasher.combine(id)
-    }
-    
-    var id: String { assignment.id ?? UUID().uuidString }
-    let assignment: ChoreAssignment
-    let chore: Chore
-    let child: UserProfile
-}
-
 class ParentHomeViewModel: ObservableObject {
     
-    // MARK: - Published Properties
     @Published var pendingApprovals: [ChoreAssignmentDetails] = []
     @Published var todaysChores: [ChoreAssignmentDetails] = []
     @Published var tomorrowsChores: [ChoreAssignmentDetails] = []
     @Published var isLoading = true
-    
-    // This property will trigger the edit sheet.
     @Published var assignmentToEdit: ChoreAssignmentDetails?
     
     private let familyID: String
@@ -45,8 +24,6 @@ class ParentHomeViewModel: ObservableObject {
         self.familyID = familyID
         fetchData()
     }
-    
-    // MARK: - Public Methods
     
     func approve(_ details: ChoreAssignmentDetails) {
         guard let assignmentID = details.assignment.id else { return }
@@ -65,40 +42,25 @@ class ParentHomeViewModel: ObservableObject {
             .updateData(["status": ChoreAssignment.Status.assigned.rawValue])
     }
     
-    // MARK: - Private Methods
-    
     private func fetchData() {
-        let assignmentsPublisher = Firestore.firestore().collection("families").document(familyID).collection("assignments").snapshotPublisher(as: ChoreAssignment.self)
-        let choresPublisher = Firestore.firestore().collection("families").document(familyID).collection("chores").snapshotPublisher(as: Chore.self)
-        let profilesPublisher = Firestore.firestore().collection("families").document(familyID).collection("profiles").snapshotPublisher(as: UserProfile.self)
-        
-        Publishers.CombineLatest3(assignmentsPublisher, choresPublisher, profilesPublisher)
+        FirestoreService.fetchAndCombineData(familyID: familyID)
             .receive(on: DispatchQueue.main)
             .sink(receiveCompletion: { [weak self] completion in
                 self?.isLoading = false
                 if case .failure(let error) = completion {
-                    print("Error fetching data: \(error)")
+                    print("Error fetching home data: \(error)")
                 }
-            }, receiveValue: { [weak self] assignments, chores, profiles in
-                self?.processFetchedData(assignments: assignments, chores: chores, profiles: profiles)
+            }, receiveValue: { [weak self] familyData in
+                self?.process(familyData)
             })
             .store(in: &cancellables)
     }
     
-    private func processFetchedData(assignments: [ChoreAssignment], chores: [Chore], profiles: [UserProfile]) {
-        let chorePairs = chores.compactMap { chore -> (String, Chore)? in
-            guard let id = chore.id else { return nil }
-            return (id, chore)
-        }
-        let choreDict = Dictionary(uniqueKeysWithValues: chorePairs)
+    private func process(_ data: FamilyData) {
+        let choreDict = Dictionary(data.chores.compactMap { ($0.id, $0) }, uniquingKeysWith: { (first, _) in first })
+        let profileDict = Dictionary(data.profiles.compactMap { ($0.id, $0) }, uniquingKeysWith: { (first, _) in first })
         
-        let profilePairs = profiles.compactMap { profile -> (String, UserProfile)? in
-            guard let id = profile.id else { return nil }
-            return (id, profile)
-        }
-        let profileDict = Dictionary(uniqueKeysWithValues: profilePairs)
-        
-        let allDetails = assignments.compactMap { assignment -> ChoreAssignmentDetails? in
+        let allDetails = data.assignments.compactMap { assignment -> ChoreAssignmentDetails? in
             guard let chore = choreDict[assignment.choreID],
                   let child = profileDict[assignment.childProfileID] else {
                 return nil
@@ -106,8 +68,8 @@ class ParentHomeViewModel: ObservableObject {
             return ChoreAssignmentDetails(assignment: assignment, chore: chore, child: child)
         }
         
-        self.pendingApprovals = allDetails.filter { $0.assignment.status == ChoreAssignment.Status.completed }
-        let upcomingChores = allDetails.filter { $0.assignment.status == ChoreAssignment.Status.assigned }
+        self.pendingApprovals = allDetails.filter { $0.assignment.status == .completed }
+        let upcomingChores = allDetails.filter { $0.assignment.status == .assigned }
         
         self.todaysChores = upcomingChores.filter {
             guard let dueDate = $0.assignment.dueDate?.dateValue() else { return false }
@@ -118,21 +80,5 @@ class ParentHomeViewModel: ObservableObject {
             guard let dueDate = $0.assignment.dueDate?.dateValue() else { return false }
             return Calendar.current.isDateInTomorrow(dueDate)
         }
-    }
-}
-
-// Helper to convert a Firestore query into a Combine publisher.
-extension Query {
-    func snapshotPublisher<T: Decodable>(as type: T.Type) -> AnyPublisher<[T], Error> {
-        Future<[T], Error> { promise in
-            self.addSnapshotListener { querySnapshot, error in
-                if let error = error {
-                    promise(.failure(error))
-                } else if let documents = querySnapshot?.documents {
-                    let data = documents.compactMap { try? $0.data(as: T.self) }
-                    promise(.success(data))
-                }
-            }
-        }.eraseToAnyPublisher()
     }
 }

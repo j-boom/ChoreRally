@@ -1,11 +1,8 @@
 //
 //  UserSelectionViewModel.swift
-//  ChoreRallyApp
+//  ChoreRally
 //
-//  Created by Gemini on [Date].
-//
-//  This ViewModel is responsible for fetching user profiles from Firestore
-//  and handling navigation logic from the UserSelectionView.
+//  This ViewModel now uses the FirestoreService.
 //
 
 import Foundation
@@ -15,32 +12,38 @@ import FirebaseAuth
 
 class UserSelectionViewModel: ObservableObject {
     
-    // MARK: - Published Properties
-    
     @Published var parentProfiles: [UserProfile] = []
     @Published var childProfiles: [UserProfile] = []
     @Published var errorMessage: String?
-    
     @Published var shouldShowOnboarding = false
-    
-    // --- This property now drives the navigation ---
-    @Published var navigationSelection: String?
-    
     @Published var isLoading = true
+    @Published var navigationSelection: String?
+    @Published var profileForPinEntry: UserProfile?
+    @Published var pinErrorMessage: String?
     
     var familyID: String?
-    private var listenerRegistration: ListenerRegistration?
+    private var cancellables = Set<AnyCancellable>()
     
     init() {
         fetchProfiles()
     }
     
-    deinit {
-        listenerRegistration?.remove()
+    func logout() {
+        try? Auth.auth().signOut()
     }
-    
-    // MARK: - Public Methods
-    
+
+    func verifyPin(enteredPin: String) {
+        guard let profile = profileForPinEntry else { return }
+        
+        if profile.pin == enteredPin {
+            pinErrorMessage = nil
+            profileForPinEntry = nil
+            navigationSelection = profile.id
+        } else {
+            pinErrorMessage = "Incorrect PIN. Please try again."
+        }
+    }
+
     func fetchProfiles() {
         guard let currentUserID = Auth.auth().currentUser?.uid else {
             errorMessage = "Error: Not logged in."
@@ -53,43 +56,26 @@ class UserSelectionViewModel: ObservableObject {
         db.collection("users").document(currentUserID).getDocument { [weak self] (document, error) in
             defer { self?.isLoading = false }
             
-            if let error = error {
-                self?.errorMessage = "Error fetching user data: \(error.localizedDescription)"
-                return
-            }
-            
             if let familyID = try? document?.data(as: UserModel.self).familyID {
                 self?.familyID = familyID
-                self?.listenForProfileChanges(familyID: familyID, db: db)
+                self?.listenForProfileChanges(familyID: familyID)
             } else {
                 self?.shouldShowOnboarding = true
             }
         }
     }
-    
-    private func listenForProfileChanges(familyID: String, db: Firestore) {
-        let profilesCollection = db.collection("families").document(familyID).collection("profiles")
-        
-        self.listenerRegistration = profilesCollection.addSnapshotListener { [weak self] (querySnapshot, error) in
-            if let error = error {
-                self?.errorMessage = "Error fetching profiles: \(error.localizedDescription)"
-                return
-            }
-            
-            guard let documents = querySnapshot?.documents else {
-                self?.errorMessage = "No profiles found."
-                return
-            }
-            
-            let allProfiles = documents.compactMap { document -> UserProfile? in
-                try? document.data(as: UserProfile.self)
-            }
-            
-            self?.parentProfiles = allProfiles.filter { $0.isParent }
-            self?.childProfiles = allProfiles.filter { !$0.isParent }
-        }
+
+    func listenForProfileChanges(familyID: String) {
+        FirestoreService.fetchProfiles(familyID: familyID)
+            .receive(on: DispatchQueue.main)
+            .sink(receiveCompletion: { [weak self] completion in
+                if case .failure(let error) = completion {
+                    self?.errorMessage = "Error fetching profiles: \(error.localizedDescription)"
+                }
+            }, receiveValue: { [weak self] profiles in
+                self?.parentProfiles = profiles.filter { $0.isParent }
+                self?.childProfiles = profiles.filter { !$0.isParent }
+            })
+            .store(in: &cancellables)
     }
-    
-    // The profileTapped function is no longer needed for parent navigation
-    // as the NavigationLink handles it directly.
 }

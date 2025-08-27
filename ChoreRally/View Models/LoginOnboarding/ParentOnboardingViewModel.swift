@@ -13,22 +13,51 @@ import FirebaseFirestore
 
 class ParentOnboardingViewModel: ObservableObject {
     
-    // MARK: - Published Properties
+    // Enum to manage the different steps of the onboarding process.
+    enum OnboardingStep {
+        case enterName
+        case setPin
+        case confirmPin
+    }
     
+    // MARK: - Published Properties
+    @Published var currentStep: OnboardingStep = .enterName
     @Published var name = ""
+    @Published var pin = ""
+    @Published var confirmedPin = ""
+    
     @Published var isLoading = false
     @Published var errorMessage: String?
     @Published var isOnboardingComplete = false
     
     // MARK: - Public Methods
     
-    /// Creates the new Family document, the first parent UserProfile, and the parent's UserModel all at once.
-    func createFamilyAndFirstProfile() {
-        // --- Validation ---
+    func advanceToPinSetup() {
         guard !name.trimmingCharacters(in: .whitespaces).isEmpty else {
             errorMessage = "Please enter your name."
             return
         }
+        errorMessage = nil
+        currentStep = .setPin
+    }
+    
+    func advanceToPinConfirmation(pin: String) {
+        self.pin = pin
+        currentStep = .confirmPin
+    }
+    
+    func createFamilyAndFirstProfile(confirmedPin: String) {
+        guard pin == confirmedPin else {
+            errorMessage = "PINs do not match. Please try again."
+            // Reset to the beginning of the PIN setup
+            self.pin = ""
+            self.confirmedPin = ""
+            currentStep = .setPin
+            return
+        }
+        
+        self.confirmedPin = confirmedPin
+        errorMessage = nil
         
         guard let currentUser = Auth.auth().currentUser else {
             errorMessage = "Could not find user. Please log in again."
@@ -37,39 +66,28 @@ class ParentOnboardingViewModel: ObservableObject {
         
         isLoading = true
         
-        // --- Create references to the Firestore locations we need ---
         let db = Firestore.firestore()
-        let newFamilyRef = db.collection("families").document() // Creates a reference with a new, unique ID
+        let newFamilyRef = db.collection("families").document()
         let userRef = db.collection("users").document(currentUser.uid)
         
-        // --- Create the data models ---
         let parentProfile = UserProfile(
             name: name,
             avatarSymbolName: "person.crop.circle.fill",
-            isParent: true
+            isParent: true,
+            pin: pin // Save the new PIN
         )
         
         let userModel = UserModel(
-            familyID: newFamilyRef.documentID, // Use the ID from our new family reference
+            familyID: newFamilyRef.documentID,
             email: currentUser.email ?? ""
         )
         
-        // --- Use a batched write to perform all operations at once ---
-        // A batched write ensures that either all operations succeed, or they all fail.
-        // This prevents our database from getting into a weird, inconsistent state.
         let batch = db.batch()
-        
-        // Operation 1: Create an empty document for the new family.
         batch.setData([:], forDocument: newFamilyRef)
-        
-        // Operation 2: Create the new parent profile inside the family's "profiles" sub-collection.
         let newProfileRef = newFamilyRef.collection("profiles").document()
         try? batch.setData(from: parentProfile, forDocument: newProfileRef)
-        
-        // Operation 3: Create the user model to link the logged-in user to the new family.
         try? batch.setData(from: userModel, forDocument: userRef)
         
-        // --- Commit the batch ---
         batch.commit { [weak self] error in
             DispatchQueue.main.async {
                 self?.isLoading = false

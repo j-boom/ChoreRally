@@ -4,7 +4,7 @@
 //
 //  Created by Gemini on [Date].
 //
-//  This view is the main screen for the "Chores" tab. It displays the
+//  This view is the main screen for the "Choores" tab. It displays the
 //  master list of chores or triggers the initial chore setup flow.
 //
 
@@ -32,7 +32,7 @@ struct ChoresManagementView: View {
             Group {
                 if viewModel.isLoading {
                     ProgressView()
-                } else if !viewModel.chores.isEmpty {
+                } else if !viewModel.choresByCategory.isEmpty {
                     // If chores exist, show the list
                     List {
                         // --- The list is now sectioned by category ---
@@ -79,7 +79,10 @@ struct ChoresManagementView: View {
             }
             // --- This sheet presents the EditChoreView as a modal ---
             .sheet(item: $viewModel.selectedChoreForEditing) { chore in
-                EditChoreView(chore: chore, familyID: familyID)
+                // We need to wrap this in a NavigationView for the modal context
+                NavigationView {
+                    EditChoreView(chore: chore, familyID: familyID)
+                }
             }
         }
     }

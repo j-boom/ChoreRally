@@ -24,11 +24,26 @@ struct ChoreAssignment: Identifiable, Codable {
     let value: Double
     var isPaid: Bool? = false
     
-    // Enum for the lifecycle of a chore
     enum Status: String, Codable {
         case assigned = "Assigned"
         case completed = "Completed"
         case approved = "Approved"
         case rejected = "Rejected"
     }
+}
+
+// This custom struct is now globally accessible to any file that imports the models.
+struct ChoreAssignmentDetails: Identifiable, Hashable {
+    static func == (lhs: ChoreAssignmentDetails, rhs: ChoreAssignmentDetails) -> Bool {
+        lhs.id == rhs.id
+    }
+    
+    func hash(into hasher: inout Hasher) {
+        hasher.combine(id)
+    }
+    
+    var id: String { assignment.id ?? UUID().uuidString }
+    let assignment: ChoreAssignment
+    let chore: Chore
+    let child: UserProfile
 }
