@@ -14,7 +14,6 @@ struct ParentDashboardView: View {
     
     // MARK: - Properties
     
-    // The dashboard needs the familyID to pass to its child views.
     let familyID: String
     
     // MARK: - Body
@@ -22,12 +21,12 @@ struct ParentDashboardView: View {
     var body: some View {
         TabView {
             // --- Tab 1: Home ---
-            Text("Home View")
+            ParentHomeView(familyID: familyID)
                 .tabItem {
                     Label("Home", systemImage: "house.fill")
                 }
             
-            // --- Tab 2: Assignments (New) ---
+            // --- Tab 2: Assignments ---
             ChoreAssignmentView(familyID: familyID)
                 .tabItem {
                     Label("Assignments", systemImage: "calendar.badge.plus")
@@ -46,7 +45,7 @@ struct ParentDashboardView: View {
                 }
             
             // --- Tab 5: Ledger ---
-            Text("Ledger View")
+            LedgerView(familyID: familyID)
                 .tabItem {
                     Label("Ledger", systemImage: "scroll.fill")
                 }
@@ -58,7 +57,6 @@ struct ParentDashboardView: View {
 
 struct ParentDashboardView_Previews: PreviewProvider {
     static var previews: some View {
-        // We provide a dummy familyID for the preview to work.
         ParentDashboardView(familyID: "previewFamilyID")
     }
 }

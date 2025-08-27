@@ -18,16 +18,17 @@ struct ChoreAssignment: Identifiable, Codable {
     
     let dateAssigned: Timestamp
     var dateCompleted: Timestamp?
-    var dueDate: Timestamp? // New property for the due date
+    var dueDate: Timestamp?
     
     var status: Status
-    let value: Double // The value of the chore at the time of assignment
+    let value: Double
+    var isPaid: Bool? = false
     
     // Enum for the lifecycle of a chore
     enum Status: String, Codable {
         case assigned = "Assigned"
-        case completed = "Completed" // Child marked as done, pending approval
-        case approved = "Approved"   // Parent approved, payment is due
-        case rejected = "Rejected"   // Parent rejected, needs to be redone
+        case completed = "Completed"
+        case approved = "Approved"
+        case rejected = "Rejected"
     }
 }
