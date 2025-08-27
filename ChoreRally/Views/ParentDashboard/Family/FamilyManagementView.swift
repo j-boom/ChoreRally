@@ -42,6 +42,7 @@ struct FamilyManagementView: View {
                                 viewModel.selectedChildForEditing = profile
                             }
                     }
+                    .onDelete(perform: viewModel.deleteChild)
                 }
             }
             .navigationTitle("Manage Family")

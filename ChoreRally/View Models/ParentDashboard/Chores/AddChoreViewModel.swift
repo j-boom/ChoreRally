@@ -47,33 +47,59 @@ class AddChoreViewModel: ObservableObject {
         }
         
         isLoading = true
-        
-        let newChore = Chore(
-            name: name,
-            description: description,
-            estimatedTimeInMinutes: estimatedTime,
-            difficultyMultiplier: difficulty.multiplier,
-            category: category
-        )
-        
         let db = Firestore.firestore()
         let choresCollection = db.collection("families").document(familyID).collection("chores")
         
-        do {
-            try choresCollection.addDocument(from: newChore) { [weak self] error in
+        // --- New: Check for existing chore with the same name ---
+        choresCollection.whereField("name", isEqualTo: name.trimmingCharacters(in: .whitespacesAndNewlines)).getDocuments { [weak self] (querySnapshot, error) in
+            
+            // Ensure we can safely access self
+            guard let self = self else { return }
+            
+            if let error = error {
                 DispatchQueue.main.async {
-                    self?.isLoading = false
-                    if let error = error {
-                        self?.errorMessage = "Error saving chore: \(error.localizedDescription)"
-                    } else {
-                        print("New chore saved successfully.")
-                        self?.isSaveSuccessful = true
+                    self.isLoading = false
+                    self.errorMessage = "Error checking for chore: \(error.localizedDescription)"
+                }
+                return
+            }
+            
+            // If we find any documents, it means the chore already exists.
+            if !(querySnapshot?.documents.isEmpty ?? true) {
+                DispatchQueue.main.async {
+                    self.isLoading = false
+                    self.errorMessage = "A chore with this name already exists."
+                }
+                return
+            }
+            
+            // --- If no duplicates are found, proceed with saving ---
+            let newChore = Chore(
+                name: self.name,
+                description: self.description,
+                estimatedTimeInMinutes: self.estimatedTime,
+                difficultyMultiplier: self.difficulty.multiplier,
+                category: self.category
+            )
+            
+            do {
+                try choresCollection.addDocument(from: newChore) { error in
+                    DispatchQueue.main.async {
+                        self.isLoading = false
+                        if let error = error {
+                            self.errorMessage = "Error saving chore: \(error.localizedDescription)"
+                        } else {
+                            print("New chore saved successfully.")
+                            self.isSaveSuccessful = true
+                        }
                     }
                 }
+            } catch {
+                DispatchQueue.main.async {
+                    self.isLoading = false
+                    self.errorMessage = "Failed to save chore: \(error.localizedDescription)"
+                }
             }
-        } catch {
-            isLoading = false
-            errorMessage = "Failed to save chore: \(error.localizedDescription)"
         }
     }
 }

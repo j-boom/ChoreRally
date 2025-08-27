@@ -42,13 +42,6 @@
       "category": "Animals"
   },
   {
-      "name": "Replace duck pool water",
-      "description": "Rinse out and add water to the kiddie pool for the ducks",
-      "estimatedTimeInMinutes": 10,
-      "difficultyMultiplier": 0.75,
-      "category": "Animals"
-  },
-  {
     "name": "Pick up dog doo-doo",
     "description": "Scour the yard for dog poop and properly dispose",
     "estimatedTimeInMinutes": 15,
@@ -154,13 +147,6 @@
     "category": "Food Prep"
   },
   {
-    "name": "Mixing or mise en place",
-    "description": "Help with prepare food for cooking",
-    "estimatedTimeInMinutes": 5,
-    "difficultyMultiplier": 1,
-    "category": "Food Prep"
-  },
-  {
     "name": "Put Away Groceries",
     "description": "Take food out of bags and put away",
     "estimatedTimeInMinutes": 10,
@@ -190,6 +176,5 @@
     "difficultyMultiplier": 1,
     "category": "DIY",
     "hourly": true
-  },
-  
+  }
 ]

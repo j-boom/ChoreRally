@@ -36,6 +36,24 @@ class FamilyManagementViewModel: ObservableObject {
     
     // MARK: - Public Methods
     
+    /// Deletes a child's profile from Firestore.
+    func deleteChild(at offsets: IndexSet) {
+        let profilesToDelete = offsets.map { self.childProfiles[$0] }
+        let db = Firestore.firestore()
+        
+        for profile in profilesToDelete {
+            if let profileID = profile.id {
+                db.collection("families").document(familyID).collection("profiles").document(profileID).delete() { err in
+                    if let err = err {
+                        print("Error removing document: \(err)")
+                    } else {
+                        print("Document successfully removed!")
+                    }
+                }
+            }
+        }
+    }
+    
     func fetchProfiles() {
         let db = Firestore.firestore()
         let profilesCollection = db.collection("families").document(familyID).collection("profiles")
@@ -51,7 +69,12 @@ class FamilyManagementViewModel: ObservableObject {
             }
             
             self?.parentProfiles = allProfiles.filter { $0.isParent }
-            self?.childProfiles = allProfiles.filter { !$0.isParent }
+            
+            // Filter and sort the child profiles by age, oldest first.
+            self?.childProfiles = allProfiles.filter { !$0.isParent }.sorted {
+                // Use 0 as a default age for sorting if it's not set.
+                ($0.age ?? 0) > ($1.age ?? 0)
+            }
         }
     }
 }

@@ -22,27 +22,30 @@ struct ParentDashboardView: View {
     var body: some View {
         TabView {
             // --- Tab 1: Home ---
-            // This will be the main screen with pending approvals and balances.
             Text("Home View")
                 .tabItem {
                     Label("Home", systemImage: "house.fill")
                 }
             
-            // --- Tab 2: Chores ---
+            // --- Tab 2: Assignments (New) ---
+            ChoreAssignmentView(familyID: familyID)
+                .tabItem {
+                    Label("Assignments", systemImage: "calendar.badge.plus")
+                }
+            
+            // --- Tab 3: Chores ---
             ChoresManagementView(familyID: familyID)
                 .tabItem {
                     Label("Chores", systemImage: "checkmark.circle.fill")
                 }
             
-            // --- Tab 3: Family ---
-            // This is where parents will manage profiles and invite others.
+            // --- Tab 4: Family ---
             FamilyManagementView(familyID: familyID)
                 .tabItem {
                     Label("Family", systemImage: "person.3.fill")
                 }
             
-            // --- Tab 4: Ledger ---
-            // This will show the transaction history and allow for payments.
+            // --- Tab 5: Ledger ---
             Text("Ledger View")
                 .tabItem {
                     Label("Ledger", systemImage: "scroll.fill")
