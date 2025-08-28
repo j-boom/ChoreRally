@@ -16,20 +16,34 @@ typealias FamilyData = (assignments: [ChoreAssignment], chores: [Chore], profile
 
 class FirestoreService {
     
+    /// Fetches the familyID for the currently authenticated user.
+    static func fetchFamilyID(for userID: String) -> AnyPublisher<String?, Error> {
+        let db = Firestore.firestore()
+        let docRef = db.collection("users").document(userID)
+        
+        return Future<String?, Error> { promise in
+            docRef.getDocument { (document, error) in
+                if let error = error {
+                    promise(.failure(error))
+                } else {
+                    let familyID = try? document?.data(as: UserModel.self).familyID
+                    promise(.success(familyID))
+                }
+            }
+        }.eraseToAnyPublisher()
+    }
+    
     /// Fetches all primary collections for a family and combines them.
     static func fetchAndCombineData(familyID: String) -> AnyPublisher<FamilyData, Error> {
         let db = Firestore.firestore()
         let familyRef = db.collection("families").document(familyID)
         
-        // Create individual publishers for each collection we need to fetch.
         let assignmentsPublisher = familyRef.collection("assignments").snapshotPublisher(as: ChoreAssignment.self)
         let choresPublisher = familyRef.collection("chores").snapshotPublisher(as: Chore.self)
         let profilesPublisher = familyRef.collection("profiles").snapshotPublisher(as: UserProfile.self)
         
-        // Use CombineLatest3 to wait for all three publishers to emit data at least once.
         return Publishers.CombineLatest3(assignmentsPublisher, choresPublisher, profilesPublisher)
             .map { (assignments, chores, profiles) in
-                // Once all data is fetched, it's combined into our custom tuple.
                 return FamilyData(assignments: assignments, chores: chores, profiles: profiles)
             }
             .eraseToAnyPublisher()
@@ -48,9 +62,7 @@ class FirestoreService {
     }
 }
 
-// --- BUG FIX ---
-// This helper extension was missing, causing the build to fail.
-// It converts a Firestore query into a Combine publisher.
+// Helper to convert a Firestore query into a Combine publisher.
 extension Query {
     func snapshotPublisher<T: Decodable>(as type: T.Type) -> AnyPublisher<[T], Error> {
         Future<[T], Error> { promise in

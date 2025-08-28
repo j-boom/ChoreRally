@@ -2,7 +2,7 @@
 //  UserSelectionViewModel.swift
 //  ChoreRally
 //
-//  This ViewModel now uses the FirestoreService.
+//  This ViewModel now uses the FirestoreService for all data fetching.
 //
 
 import Foundation
@@ -21,11 +21,15 @@ class UserSelectionViewModel: ObservableObject {
     @Published var profileForPinEntry: UserProfile?
     @Published var pinErrorMessage: String?
     
+    // --- BUG FIX ---
+    // This property was missing, causing the build to fail.
+    @Published var selectedChildProfile: UserProfile?
+    
     var familyID: String?
     private var cancellables = Set<AnyCancellable>()
     
     init() {
-        fetchProfiles()
+        fetchInitialData()
     }
     
     func logout() {
@@ -44,25 +48,30 @@ class UserSelectionViewModel: ObservableObject {
         }
     }
 
-    func fetchProfiles() {
+    func fetchInitialData() {
         guard let currentUserID = Auth.auth().currentUser?.uid else {
             errorMessage = "Error: Not logged in."
             isLoading = false
             return
         }
         
-        let db = Firestore.firestore()
-        
-        db.collection("users").document(currentUserID).getDocument { [weak self] (document, error) in
-            defer { self?.isLoading = false }
-            
-            if let familyID = try? document?.data(as: UserModel.self).familyID {
-                self?.familyID = familyID
-                self?.listenForProfileChanges(familyID: familyID)
-            } else {
-                self?.shouldShowOnboarding = true
-            }
-        }
+        isLoading = true
+        FirestoreService.fetchFamilyID(for: currentUserID)
+            .receive(on: DispatchQueue.main)
+            .sink(receiveCompletion: { [weak self] completion in
+                self?.isLoading = false
+                if case .failure(let error) = completion {
+                    self?.errorMessage = "Error fetching user data: \(error.localizedDescription)"
+                }
+            }, receiveValue: { [weak self] familyID in
+                if let familyID = familyID {
+                    self?.familyID = familyID
+                    self?.listenForProfileChanges(familyID: familyID)
+                } else {
+                    self?.shouldShowOnboarding = true
+                }
+            })
+            .store(in: &cancellables)
     }
 
     func listenForProfileChanges(familyID: String) {
