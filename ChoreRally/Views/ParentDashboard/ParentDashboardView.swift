@@ -16,7 +16,6 @@ struct ParentDashboardView: View {
     
     let familyID: String
     
-    // State to track the selected tab and a unique ID for the home view to force refreshes.
     @State private var selectedTab: Int = 0
     @State private var homeViewID = UUID()
     

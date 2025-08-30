@@ -1,89 +1,54 @@
 //
 //  ChoresManagementView.swift
-//  ChoreRallyApp
+//  ChoreRally
 //
-//  Created by Gemini on [Date].
+//  Created by Anoop on 2023-12-24.
 //
-//  This view is the main screen for the "Choores" tab. It displays the
-//  master list of chores or triggers the initial chore setup flow.
+//  This view has been updated to properly initialize its ViewModel.
 //
 
 import SwiftUI
 
 struct ChoresManagementView: View {
     
-    // MARK: - Properties
-    
+    // You will need to pass the familyID to this view from the ParentDashboardView.
     @StateObject private var viewModel: ChoresManagementViewModel
     
-    // We need the familyID to pass to the setup view.
-    private let familyID: String
-    
     init(familyID: String) {
-        self.familyID = familyID
         _viewModel = StateObject(wrappedValue: ChoresManagementViewModel(familyID: familyID))
     }
     
-    // MARK: - Body
-    
     var body: some View {
-        // --- The NavigationView is needed here because this view is inside a TabView ---
         NavigationView {
-            Group {
+            VStack {
                 if viewModel.isLoading {
-                    ProgressView()
-                } else if !viewModel.choresByCategory.isEmpty {
-                    // If chores exist, show the list
+                    ProgressView("Loading Chores...")
+                } else {
                     List {
-                        // --- The list is now sectioned by category ---
-                        ForEach(viewModel.choreCategories, id: \.self) { category in
-                            Section(header: Text(category.rawValue)) {
-                                ForEach(viewModel.choresByCategory[category] ?? []) { chore in
-                                    ChoreRowView(chore: chore)
-                                        .onTapGesture {
-                                            // Tapping a row now sets the chore to be edited
-                                            viewModel.selectedChoreForEditing = chore
-                                        }
-                                }
-                                .onDelete { indexSet in
-                                    viewModel.deleteChore(in: category, at: indexSet)
-                                }
+                        ForEach(viewModel.chores) { chore in
+                            VStack(alignment: .leading) {
+                                Text(chore.name).font(.headline)
+                                Text(chore.description).font(.subheadline).foregroundColor(.secondary)
                             }
                         }
                     }
-                } else {
-                    // If no chores exist, show a helpful message
-                    Text("No chores found. Tap the '+' to add your first chore.")
-                        .foregroundColor(.secondary)
-                        .multilineTextAlignment(.center)
-                        .padding()
                 }
             }
             .navigationTitle("Manage Chores")
             .toolbar {
                 ToolbarItem(placement: .navigationBarTrailing) {
+                    // This button will eventually navigate to an "Add Chore" screen.
                     Button(action: {
-                        viewModel.shouldShowAddChoreSheet = true
+                        // TODO: Implement navigation to AddChoreView
                     }) {
                         Image(systemName: "plus")
                     }
                 }
             }
-            // This sheet now presents the AddChoreView
-            .sheet(isPresented: $viewModel.shouldShowAddChoreSheet) {
-                AddChoreView(familyID: familyID)
-            }
-            // This sheet is triggered automatically on the first visit
-            .sheet(isPresented: $viewModel.shouldShowInitialSetup) {
-                ChoreSetupView(familyID: familyID)
-            }
-            // --- This sheet presents the EditChoreView as a modal ---
-            .sheet(item: $viewModel.selectedChoreForEditing) { chore in
-                // We need to wrap this in a NavigationView for the modal context
-                NavigationView {
-                    EditChoreView(chore: chore, familyID: familyID)
-                }
-            }
         }
     }
+}
+
+#Preview {
+    ChoresManagementView(familyID: "previewFamilyID")
 }

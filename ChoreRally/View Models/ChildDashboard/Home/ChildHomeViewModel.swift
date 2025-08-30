@@ -2,14 +2,6 @@
 //  ChildHomeViewModel.swift
 //  ChoreRally
 //
-//  Created by Jim Bergren on 8/27/25.
-//
-
-
-//
-//  ChildHomeViewModel.swift
-//  ChoreRally
-//
 //  Created by Gemini on [Date].
 //
 //  This ViewModel powers the child's home screen.
@@ -34,13 +26,23 @@ class ChildHomeViewModel: ObservableObject {
         fetchData()
     }
     
-    /// Marks a chore as 'Completed' in Firestore, ready for parent approval.
+    /// Marks a chore as 'Completed' by calling the FirestoreService.
     func markChoreAsCompleted(_ details: ChoreAssignmentDetails) {
         guard let assignmentID = details.assignment.id else { return }
         
-        let db = Firestore.firestore()
-        db.collection("families").document(familyID).collection("assignments").document(assignmentID)
-            .updateData(["status": ChoreAssignment.Status.completed.rawValue])
+        FirestoreService.updateAssignmentStatus(
+            assignmentID: assignmentID,
+            newStatus: .completed,
+            in: familyID
+        )
+        .sink(receiveCompletion: { completion in
+            if case .failure(let error) = completion {
+                print("Error updating chore status: \(error.localizedDescription)")
+            }
+        }, receiveValue: {
+            print("Chore status updated successfully.")
+        })
+        .store(in: &cancellables)
     }
     
     private func fetchData() {

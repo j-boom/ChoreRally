@@ -21,17 +21,17 @@ struct ChildDashboardView: View {
                 .tabItem {
                     Label("Home", systemImage: "house.fill")
                 }
-            
-            // --- Tab 2: My Chores ---
-            Text("My Chores (Coming Soon)")
-                .tabItem {
-                    Label("My Chores", systemImage: "checkmark.circle.fill")
-                }
-            
-            // --- Tab 3: Extra Chores ---
-            Text("Extra Chores (Coming Soon)")
+
+            // --- Tab 2: Extra Chores ---
+            ExtraChoresView(childProfile: childProfile, familyID: familyID)
                 .tabItem {
                     Label("Extra Chores", systemImage: "star.fill")
+                }
+            
+            // --- Tab 3: Ledger ---
+            ChildLedgerView(childProfile: childProfile, familyID: familyID)
+                .tabItem {
+                    Label("Ledger", systemImage: "wallet.bifold")
                 }
         }
     }

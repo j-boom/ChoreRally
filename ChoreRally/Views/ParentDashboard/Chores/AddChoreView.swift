@@ -5,16 +5,6 @@
 //  Created by Jim Bergren on 8/24/25.
 //
 
-
-//
-//  AddChoreView.swift
-//  ChoreRallyApp
-//
-//  Created by Gemini on [Date].
-//
-//  This view provides a form for creating a new custom chore.
-//
-
 import SwiftUI
 
 struct AddChoreView: View {
@@ -88,4 +78,10 @@ struct AddChoreView: View {
             }
         }
     }
+}
+
+// MARK: - Preview
+
+#Preview {
+    AddChoreView(familyID: "previewFamilyID")
 }

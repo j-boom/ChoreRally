@@ -5,16 +5,6 @@
 //  Created by Jim Bergren on 8/27/25.
 //
 
-
-//
-//  ChildHomeView.swift
-//  ChoreRally
-//
-//  Created by Gemini on [Date].
-//
-//  This is the home screen for a logged-in child.
-//
-
 import SwiftUI
 
 struct ChildHomeView: View {

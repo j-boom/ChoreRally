@@ -2,7 +2,7 @@
 //  FirestoreService.swift
 //  ChoreRally
 //
-//  Created by Gemini on [Date].
+//  Created by Gemini on 2025-08-27.
 //
 //  This service provides a centralized place for all Firestore database interactions.
 //
@@ -13,6 +13,7 @@ import Combine
 
 // A tuple to hold the combined results from our database queries.
 typealias FamilyData = (assignments: [ChoreAssignment], chores: [Chore], profiles: [UserProfile])
+typealias LedgerData = (assignments: [ChoreAssignment], chores: [Chore], payments: [Payment])
 
 class FirestoreService {
     
@@ -49,6 +50,22 @@ class FirestoreService {
             .eraseToAnyPublisher()
     }
     
+    /// Fetches all data needed for the child's ledger view.
+    static func fetchDataForLedger(familyID: String) -> AnyPublisher<LedgerData, Error> {
+        let db = Firestore.firestore()
+        let familyRef = db.collection("families").document(familyID)
+        
+        let assignmentsPublisher = familyRef.collection("assignments").snapshotPublisher(as: ChoreAssignment.self)
+        let choresPublisher = familyRef.collection("chores").snapshotPublisher(as: Chore.self)
+        let paymentsPublisher = familyRef.collection("payments").snapshotPublisher(as: Payment.self)
+        
+        return Publishers.CombineLatest3(assignmentsPublisher, choresPublisher, paymentsPublisher)
+            .map { (assignments, chores, payments) in
+                return LedgerData(assignments: assignments, chores: chores, payments: payments)
+            }
+            .eraseToAnyPublisher()
+    }
+    
     /// Fetches only the chores for a given family.
     static func fetchChores(familyID: String) -> AnyPublisher<[Chore], Error> {
         let db = Firestore.firestore()
@@ -60,20 +77,73 @@ class FirestoreService {
         let db = Firestore.firestore()
         return db.collection("families").document(familyID).collection("profiles").snapshotPublisher(as: UserProfile.self)
     }
+    
+    /// Updates the status of a specific chore assignment.
+    static func updateAssignmentStatus(assignmentID: String, newStatus: ChoreAssignment.Status, in familyID: String) -> AnyPublisher<Void, Error> {
+        let db = Firestore.firestore()
+        let docRef = db.collection("families").document(familyID).collection("assignments").document(assignmentID)
+        
+        return Future<Void, Error> { promise in
+            docRef.updateData(["status": newStatus.rawValue]) { error in
+                if let error = error {
+                    promise(.failure(error))
+                } else {
+                    promise(.success(()))
+                }
+            }
+        }.eraseToAnyPublisher()
+    }
+    
+    /// Creates multiple new chore assignments in a single batch operation.
+    static func createAssignments(_ assignments: [ChoreAssignment], in familyID: String) -> AnyPublisher<Void, Error> {
+        let db = Firestore.firestore()
+        let batch = db.batch()
+        let assignmentsCollection = db.collection("families").document(familyID).collection("assignments")
+        
+        return Future<Void, Error> { promise in
+            for assignment in assignments {
+                let docRef = assignmentsCollection.document() // Create a new document with a unique ID
+                do {
+                    try batch.setData(from: assignment, forDocument: docRef)
+                } catch {
+                    promise(.failure(error))
+                    return
+                }
+            }
+            
+            batch.commit { error in
+                if let error = error {
+                    promise(.failure(error))
+                } else {
+                    promise(.success(()))
+                }
+            }
+        }.eraseToAnyPublisher()
+    }
 }
 
 // Helper to convert a Firestore query into a Combine publisher.
 extension Query {
     func snapshotPublisher<T: Decodable>(as type: T.Type) -> AnyPublisher<[T], Error> {
-        Future<[T], Error> { promise in
-            self.addSnapshotListener { querySnapshot, error in
-                if let error = error {
-                    promise(.failure(error))
-                } else if let documents = querySnapshot?.documents {
-                    let data = documents.compactMap { try? $0.data(as: T.self) }
-                    promise(.success(data))
-                }
+        let subject = PassthroughSubject<[T], Error>()
+        
+        let listener = self.addSnapshotListener { querySnapshot, error in
+            if let error = error {
+                subject.send(completion: .failure(error))
+                return
             }
-        }.eraseToAnyPublisher()
+            
+            guard let documents = querySnapshot?.documents else {
+                subject.send([])
+                return
+            }
+            
+            let data = documents.compactMap { try? $0.data(as: T.self) }
+            subject.send(data)
+        }
+        
+        return subject.handleEvents(receiveCancel: {
+            listener.remove()
+        }).eraseToAnyPublisher()
     }
 }

@@ -2,7 +2,8 @@
 //  UserSelectionView.swift
 //  ChoreRally
 //
-//  This view has been refactored to fix the compiler performance issue.
+//  This view has been refactored to use consistent NavigationLinks for both
+//  parent and child dashboards.
 //
 
 import SwiftUI
@@ -37,11 +38,7 @@ struct UserSelectionView: View {
             .sheet(item: $viewModel.profileForPinEntry) { _ in
                 pinEntrySheet
             }
-            .fullScreenCover(item: $viewModel.selectedChildProfile) { profile in
-                if let familyID = viewModel.familyID {
-                    ChildDashboardView(childProfile: profile, familyID: familyID)
-                }
-            }
+            // The .fullScreenCover has been removed from here.
         }
     }
     
@@ -118,9 +115,8 @@ struct UserSelectionView: View {
                 
                 LazyVGrid(columns: columns, spacing: 20) {
                     ForEach(viewModel.childProfiles) { profile in
-                        Button(action: {
-                            viewModel.selectedChildProfile = profile
-                        }) {
+                        // CHANGED: This is now a NavigationLink.
+                        NavigationLink(destination: ChildDashboardView(childProfile: profile, familyID: viewModel.familyID ?? "")) {
                             ProfileIconView(profile: profile)
                         }
                     }

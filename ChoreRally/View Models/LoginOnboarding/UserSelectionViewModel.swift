@@ -20,9 +20,6 @@ class UserSelectionViewModel: ObservableObject {
     @Published var navigationSelection: String?
     @Published var profileForPinEntry: UserProfile?
     @Published var pinErrorMessage: String?
-    
-    // --- BUG FIX ---
-    // This property was missing, causing the build to fail.
     @Published var selectedChildProfile: UserProfile?
     
     var familyID: String?

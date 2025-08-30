@@ -54,4 +54,3 @@ struct Chore: Identifiable, Codable, Hashable {
         case other = "Other"
     }
 }
-

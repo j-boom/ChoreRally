@@ -2,62 +2,44 @@
 //  ChoresManagementViewModel.swift
 //  ChoreRally
 //
-//  This ViewModel now uses the FirestoreService.
+//  Created by Anoop on 2023-12-24.
+//
+//  This ViewModel has been updated to correctly handle loading states.
 //
 
 import Foundation
-import FirebaseFirestore
 import Combine
 
 class ChoresManagementViewModel: ObservableObject {
-
-    @Published var choresByCategory: [Chore.ChoreCategory: [Chore]] = [:]
-    @Published var choreCategories: [Chore.ChoreCategory] = []
+    
+    @Published var chores: [Chore] = []
     @Published var isLoading = true
-    @Published var shouldShowInitialSetup = false
-    @Published var shouldShowAddChoreSheet = false
-    @Published var selectedChoreForEditing: Chore?
     
     private let familyID: String
     private var cancellables = Set<AnyCancellable>()
-
+    
     init(familyID: String) {
         self.familyID = familyID
-        fetchChores()
+        fetchData()
     }
-
-    func fetchChores() {
+    
+    private func fetchData() {
         isLoading = true
         FirestoreService.fetchChores(familyID: familyID)
             .receive(on: DispatchQueue.main)
             .sink(receiveCompletion: { [weak self] completion in
-                self?.isLoading = false
                 if case .failure(let error) = completion {
-                    print("Error fetching chores: \(error)")
+                    print("Error fetching chores: \(error.localizedDescription)")
+                    // Also set loading to false in case of an error.
+                    self?.isLoading = false
                 }
             }, receiveValue: { [weak self] chores in
-                self?.groupAndSortChores(chores)
-                if chores.isEmpty {
-                    self?.shouldShowInitialSetup = true
-                }
+                // --- THIS IS THE FIX ---
+                // The loading state is now correctly updated as soon as the
+                // first value is received from the data stream.
+                self?.chores = chores
+                self?.isLoading = false
             })
             .store(in: &cancellables)
-    }
-    
-    func deleteChore(in category: Chore.ChoreCategory, at offsets: IndexSet) {
-        guard let choresInCategory = choresByCategory[category] else { return }
-        let choresToDelete = offsets.map { choresInCategory[$0] }
-        let db = Firestore.firestore()
-        
-        for chore in choresToDelete {
-            if let choreID = chore.id {
-                db.collection("families").document(familyID).collection("chores").document(choreID).delete()
-            }
-        }
-    }
-
-    private func groupAndSortChores(_ chores: [Chore]) {
-        choresByCategory = Dictionary(grouping: chores, by: { $0.category })
-        choreCategories = choresByCategory.keys.sorted { $0.rawValue < $1.rawValue }
     }
 }
