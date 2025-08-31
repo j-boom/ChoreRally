@@ -22,6 +22,22 @@ struct ParentHomeView: View {
     var body: some View {
         NavigationView {
             List {
+                // --- Overdue Section ---
+                Section(header: Text("Overdue")) {
+                    if $viewModel.overdueChores.isEmpty {
+                        Text("No chores are overdue.")
+                            .foregroundColor(.secondary)
+                    } else {
+                        ForEach(viewModel.overdueChores) { details in
+                            UpcomingChoreRowView(details: details)
+                                .listRowBackground(Color.red.opacity(0.2))
+                                .onTapGesture {
+                                    viewModel.assignmentToEdit = details
+                                }
+                        }
+                    }
+                }
+                
                 // --- Pending Approval Section ---
                 Section(header: Text("Pending Approval")) {
                     if viewModel.pendingApprovals.isEmpty {

@@ -21,6 +21,7 @@ struct Chore: Identifiable, Codable, Hashable {
     var estimatedTimeInMinutes: Int
     var difficultyMultiplier: Double
     var category: ChoreCategory
+    var isTimeBased: Bool? = false
     
     // Enum for the different difficulty levels
     enum Difficulty: String, CaseIterable, Codable {

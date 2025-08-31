@@ -12,6 +12,7 @@ import Combine
 class ParentHomeViewModel: ObservableObject {
     
     @Published var pendingApprovals: [ChoreAssignmentDetails] = []
+    @Published var overdueChores: [ChoreAssignmentDetails] = []
     @Published var todaysChores: [ChoreAssignmentDetails] = []
     @Published var tomorrowsChores: [ChoreAssignmentDetails] = []
     @Published var isLoading = true
@@ -71,6 +72,14 @@ class ParentHomeViewModel: ObservableObject {
         self.pendingApprovals = allDetails.filter { $0.assignment.status == .completed }
         let upcomingChores = allDetails.filter { $0.assignment.status == .assigned }
         
+        let now = Date()
+        let startOfToday = Calendar.current.startOfDay(for: now)
+        
+        self.overdueChores = upcomingChores.filter {
+            guard let dueDate = $0.assignment.dueDate?.dateValue() else { return false }
+            return dueDate < startOfToday
+        }
+        
         self.todaysChores = upcomingChores.filter {
             guard let dueDate = $0.assignment.dueDate?.dateValue() else { return false }
             return Calendar.current.isDateInToday(dueDate)
@@ -82,3 +91,4 @@ class ParentHomeViewModel: ObservableObject {
         }
     }
 }
+

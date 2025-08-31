@@ -18,6 +18,18 @@ struct ChildHomeView: View {
     var body: some View {
         NavigationView {
             List {
+                Section(header: Text("Overdue")) {
+                    if viewModel.overdueChores.isEmpty {
+                        Text("No chores are overdue.")
+                            .foregroundColor(.secondary)
+                    } else {
+                        ForEach(viewModel.overdueChores) { details in
+                            ChildChoreRowView(details: details, viewModel: viewModel)
+                                .listRowBackground(Color.red.opacity(0.2))
+                        }
+                    }
+                }
+                
                 Section(header: Text("Due Today")) {
                     if viewModel.todaysChores.isEmpty {
                         Text("No chores due today. Great job!")

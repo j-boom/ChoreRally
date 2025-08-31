@@ -11,7 +11,6 @@ import SwiftUI
 
 struct ChoresManagementView: View {
     
-    // You will need to pass the familyID to this view from the ParentDashboardView.
     @StateObject private var viewModel: ChoresManagementViewModel
     
     init(familyID: String) {
@@ -20,35 +19,40 @@ struct ChoresManagementView: View {
     
     var body: some View {
         NavigationView {
-            VStack {
+            Group {
                 if viewModel.isLoading {
                     ProgressView("Loading Chores...")
                 } else {
-                    List {
-                        ForEach(viewModel.chores) { chore in
-                            VStack(alignment: .leading) {
-                                Text(chore.name).font(.headline)
-                                Text(chore.description).font(.subheadline).foregroundColor(.secondary)
-                            }
+                    ChoreListView(
+                        chores: viewModel.chores,
+                        actionType: .button(title: "Edit", action: { chore in
+                            viewModel.selectedChoreForEditing = chore
+                        }),
+                        onDelete: viewModel.deleteChore,
+                        rowContent: { chore in
+                            ChoreRowView(chore: chore)
                         }
-                    }
+                    )
                 }
             }
             .navigationTitle("Manage Chores")
             .toolbar {
                 ToolbarItem(placement: .navigationBarTrailing) {
-                    // This button will eventually navigate to an "Add Chore" screen.
                     Button(action: {
-                        // TODO: Implement navigation to AddChoreView
+                        viewModel.shouldShowAddChoreSheet = true
                     }) {
                         Image(systemName: "plus")
                     }
                 }
             }
+            .sheet(isPresented: $viewModel.shouldShowAddChoreSheet) {
+                AddChoreView(familyID: viewModel.familyID)
+            }
+            .sheet(item: $viewModel.selectedChoreForEditing) { chore in
+                // The NavigationView wrapper has been removed to create a true modal presentation.
+                EditChoreView(chore: chore, familyID: viewModel.familyID)
+            }
         }
     }
 }
 
-#Preview {
-    ChoresManagementView(familyID: "previewFamilyID")
-}

@@ -34,6 +34,22 @@ class FirestoreService {
         }.eraseToAnyPublisher()
     }
     
+    /// Deletes a specific chore document from a family's collection.
+        static func deleteChore(_ choreID: String, in familyID: String) -> AnyPublisher<Void, Error> {
+            let db = Firestore.firestore()
+            let docRef = db.collection("families").document(familyID).collection("chores").document(choreID)
+            
+            return Future<Void, Error> { promise in
+                docRef.delete { error in
+                    if let error = error {
+                        promise(.failure(error))
+                    } else {
+                        promise(.success(()))
+                    }
+                }
+            }.eraseToAnyPublisher()
+        }
+    
     /// Fetches all primary collections for a family and combines them.
     static func fetchAndCombineData(familyID: String) -> AnyPublisher<FamilyData, Error> {
         let db = Firestore.firestore()
@@ -76,6 +92,12 @@ class FirestoreService {
     static func fetchProfiles(familyID: String) -> AnyPublisher<[UserProfile], Error> {
         let db = Firestore.firestore()
         return db.collection("families").document(familyID).collection("profiles").snapshotPublisher(as: UserProfile.self)
+    }
+    
+    /// Fetches the global list of chore templates.
+    static func fetchChoreTemplates() -> AnyPublisher<[Chore], Error> {
+        let db = Firestore.firestore()
+        return db.collection("choreTemplates").snapshotPublisher(as: Chore.self)
     }
     
     /// Updates the status of a specific chore assignment.

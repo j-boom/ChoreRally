@@ -39,16 +39,23 @@ struct ChildDetailView: View {
             
             // --- Assign Chores Section ---
             Section(header: Text("Capable Chores")) {
-                // We use a multi-selector list to assign chores.
-                List(viewModel.allChores) { chore in
+                // Using a ForEach loop directly within the section is the correct
+                // way to create a list of items inside a Form.
+                ForEach(viewModel.allChores) { chore in
                     Button(action: {
                         viewModel.toggleChoreAssignment(chore)
                     }) {
                         HStack {
-                            Text(chore.name)
+                            VStack(alignment: .leading) {
+                                Text(chore.name)
+                                Text(chore.description)
+                                    .font(.caption)
+                                    .foregroundColor(.secondary)
+                            }
                             Spacer()
                             if viewModel.capableChoreIDs.contains(chore.id ?? "") {
                                 Image(systemName: "checkmark")
+                                    .foregroundColor(.accentColor)
                             }
                         }
                     }
@@ -71,3 +78,4 @@ struct ChildDetailView: View {
         }
     }
 }
+

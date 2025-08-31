@@ -9,18 +9,35 @@
 
 import Foundation
 import Combine
+import FirebaseFirestore
 
 class ChoresManagementViewModel: ObservableObject {
     
     @Published var chores: [Chore] = []
     @Published var isLoading = true
+    @Published var shouldShowAddChoreSheet = false
+    @Published var selectedChoreForEditing: Chore?
     
-    private let familyID: String
+    let familyID: String
     private var cancellables = Set<AnyCancellable>()
     
     init(familyID: String) {
         self.familyID = familyID
         fetchData()
+    }
+    
+    func deleteChore(_ chore: Chore) {
+        guard let choreID = chore.id else { return }
+        
+        FirestoreService.deleteChore(choreID, in: familyID)
+            .sink(receiveCompletion: { completion in
+                if case .failure(let error) = completion {
+                    print("Error deleting chore: \(error.localizedDescription)")
+                }
+            }, receiveValue: {
+                print("Chore deleted successfully.")
+            })
+            .store(in: &cancellables)
     }
     
     private func fetchData() {
@@ -43,3 +60,4 @@ class ChoresManagementViewModel: ObservableObject {
             .store(in: &cancellables)
     }
 }
+

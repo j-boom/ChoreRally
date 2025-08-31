@@ -27,6 +27,7 @@ class AddChoreViewModel: ObservableObject {
     @Published var category = Chore.ChoreCategory.other
     @Published var difficulty = Chore.Difficulty.moderate
     @Published var estimatedTime = 15
+    @Published var isTimeBased = false
     
     @Published var isLoading = false
     @Published var errorMessage: String?
@@ -77,9 +78,10 @@ class AddChoreViewModel: ObservableObject {
             let newChore = Chore(
                 name: self.name,
                 description: self.description,
-                estimatedTimeInMinutes: self.estimatedTime,
+                estimatedTimeInMinutes: self.isTimeBased ? 0 : self.estimatedTime,
                 difficultyMultiplier: self.difficulty.multiplier,
-                category: self.category
+                category: self.category,
+                isTimeBased: self.isTimeBased
             )
             
             do {

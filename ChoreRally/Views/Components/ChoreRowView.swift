@@ -30,6 +30,7 @@ struct ChoreRowView: View {
             .foregroundColor(.secondary)
             .padding(.top, 4)
         }
+        .padding(.vertical, 4)
     }
 }
 

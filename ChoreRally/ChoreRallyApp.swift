@@ -14,6 +14,7 @@ class AppDelegate: NSObject, UIApplicationDelegate {
                    didFinishLaunchingWithOptions launchOptions: [UIApplication.LaunchOptionsKey : Any]? = nil) -> Bool {
     // This line connects your app to your Firebase project when the app starts.
     FirebaseApp.configure()
+      ChoreTemplateUploader.uploadChoreTemplatesIfNeeded()
     return true
   }
 }

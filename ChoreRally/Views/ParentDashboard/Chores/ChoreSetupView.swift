@@ -30,18 +30,21 @@ struct ChoreSetupView: View {
                     .padding()
                     .multilineTextAlignment(.center)
                 
-                List {
-                    ForEach(viewModel.choreCategories, id: \.self) { category in
-                        Section(header: Text(category.rawValue)) {
-                            // --- FIX: Use the chore's ID for identification ---
-                            ForEach(viewModel.templatesByCategory[category] ?? []) { chore in
-                                ChoreSelectionRow(chore: chore, isSelected: viewModel.selectedChores.contains(chore)) {
-                                    viewModel.toggleChoreSelection(chore)
-                                }
-                            }
+                ChoreListView(
+                    chores: viewModel.choreTemplates,
+                    actionType: .checkmark(
+                        isSelected: { chore in
+                            viewModel.selectedChores.contains(where: { $0.id == chore.id })
+                        },
+                        action: { chore in
+                            viewModel.toggleChoreSelection(chore)
                         }
+                    ),
+                    onDelete: nil,
+                    rowContent: { chore in
+                        ChoreRowView(chore: chore)
                     }
-                }
+                )
                 
                 Button(action: {
                     viewModel.saveSelectedChores()
@@ -70,27 +73,3 @@ struct ChoreSetupView: View {
     }
 }
 
-// MARK: - Reusable Row Component
-
-struct ChoreSelectionRow: View {
-    let chore: Chore
-    let isSelected: Bool
-    let action: () -> Void
-    
-    var body: some View {
-        Button(action: action) {
-            HStack {
-                Image(systemName: isSelected ? "checkmark.circle.fill" : "circle")
-                    .foregroundColor(isSelected ? .blue : .secondary)
-                VStack(alignment: .leading) {
-                    Text(chore.name)
-                        .font(.headline)
-                    Text(chore.description)
-                        .font(.caption)
-                        .foregroundColor(.secondary)
-                }
-            }
-            .foregroundColor(.primary)
-        }
-    }
-}

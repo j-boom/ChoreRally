@@ -13,6 +13,7 @@ import Combine
 
 class ChildHomeViewModel: ObservableObject {
     
+    @Published var overdueChores: [ChoreAssignmentDetails] = []
     @Published var todaysChores: [ChoreAssignmentDetails] = []
     @Published var tomorrowsChores: [ChoreAssignmentDetails] = []
     
@@ -68,6 +69,14 @@ class ChildHomeViewModel: ObservableObject {
         }
         
         let upcomingChores = allDetails.filter { $0.assignment.status == .assigned }
+        
+        let now = Date()
+        let startOfToday = Calendar.current.startOfDay(for: now)
+        
+        self.overdueChores = upcomingChores.filter {
+            guard let dueDate = $0.assignment.dueDate?.dateValue() else { return false }
+            return dueDate < startOfToday
+        }
         
         self.todaysChores = upcomingChores.filter {
             guard let dueDate = $0.assignment.dueDate?.dateValue() else { return false }

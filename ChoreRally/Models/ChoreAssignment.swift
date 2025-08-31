@@ -21,8 +21,12 @@ struct ChoreAssignment: Identifiable, Codable {
     var dueDate: Timestamp?
     
     var status: Status
-    let value: Double
+    var value: Double
     var isPaid: Bool? = false
+    
+    // Properties for time-based chores
+    var hourlyRate: Double?
+    var minutesWorked: Int?
     
     enum Status: String, Codable {
         case assigned = "Assigned"
@@ -47,3 +51,4 @@ struct ChoreAssignmentDetails: Identifiable, Hashable {
     let chore: Chore
     let child: UserProfile
 }
+

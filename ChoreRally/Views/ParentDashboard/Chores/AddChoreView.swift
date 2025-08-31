@@ -35,13 +35,17 @@ struct AddChoreView: View {
                         }
                     }
                     
-                    Picker("Difficulty", selection: $viewModel.difficulty) {
-                        ForEach(Chore.Difficulty.allCases, id: \.self) { difficulty in
-                            Text(difficulty.rawValue).tag(difficulty)
-                        }
-                    }
+                    Toggle("Time-Based Chore", isOn: $viewModel.isTimeBased)
                     
-                    Stepper("Estimated Time: \(viewModel.estimatedTime) minutes", value: $viewModel.estimatedTime, in: 5...120, step: 5)
+                    if !viewModel.isTimeBased {
+                        Picker("Difficulty", selection: $viewModel.difficulty) {
+                            ForEach(Chore.Difficulty.allCases, id: \.self) { difficulty in
+                                Text(difficulty.rawValue).tag(difficulty)
+                            }
+                        }
+                        
+                        Stepper("Estimated Time: \(viewModel.estimatedTime) minutes", value: $viewModel.estimatedTime, in: 5...120, step: 5)
+                    }
                 }
                 
                 Section {
@@ -85,3 +89,4 @@ struct AddChoreView: View {
 #Preview {
     AddChoreView(familyID: "previewFamilyID")
 }
+

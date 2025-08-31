@@ -16,17 +16,17 @@ class ChoreSetupViewModel: ObservableObject {
     
     // MARK: - Published Properties
     
-    @Published var templatesByCategory: [Chore.ChoreCategory: [Chore]] = [:]
+    @Published var choreTemplates: [Chore] = []
     @Published var selectedChores = Set<Chore>()
     @Published var isLoading = false
     @Published var isSetupComplete = false
     
-    let choreCategories = Chore.ChoreCategory.allCases
     private let familyID: String
+    private var cancellables = Set<AnyCancellable>()
     
     init(familyID: String) {
         self.familyID = familyID
-        loadChoreTemplates()
+        fetchChoreTemplates()
     }
     
     // MARK: - Public Methods
@@ -47,7 +47,8 @@ class ChoreSetupViewModel: ObservableObject {
         // Use a batched write to add all selected chores at once.
         let batch = db.batch()
         
-        for chore in selectedChores {
+        for var chore in selectedChores {
+            chore.id = nil // Ensure new documents are created in the family's collection
             let newChoreRef = choresCollection.document()
             try? batch.setData(from: chore, forDocument: newChoreRef)
         }
@@ -65,26 +66,17 @@ class ChoreSetupViewModel: ObservableObject {
     
     // MARK: - Private Methods
     
-    private func loadChoreTemplates() {
-        // --- This function now loads chores from the local JSON file ---
-        guard let url = Bundle.main.url(forResource: "ChoreTemplates", withExtension: "json") else {
-            print("ChoreTemplates.json file not found.")
-            return
-        }
-        
-        do {
-            let data = try Data(contentsOf: url)
-            var templates = try JSONDecoder().decode([Chore].self, from: data)
-            
-            // --- Manually assign a temporary unique ID for the UI ---
-            for i in 0..<templates.count {
-                templates[i].id = UUID().uuidString
-            }
-            
-            // Group the templates by category for the view.
-            templatesByCategory = Dictionary(grouping: templates, by: { $0.category })
-        } catch {
-            print("Error decoding chore templates: \(error)")
-        }
+    private func fetchChoreTemplates() {
+        FirestoreService.fetchChoreTemplates()
+            .receive(on: DispatchQueue.main)
+            .sink(receiveCompletion: { completion in
+                if case .failure(let error) = completion {
+                    print("Error fetching chore templates: \(error.localizedDescription)")
+                }
+            }, receiveValue: { [weak self] templates in
+                self?.choreTemplates = templates
+            })
+            .store(in: &cancellables)
     }
 }
+

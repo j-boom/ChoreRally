@@ -34,13 +34,21 @@ struct ExtraChoresView: View {
                     .padding()
                 } else {
                     // The list of available chores.
-                    List {
-                        ForEach(viewModel.availableChores) { chore in
-                            ExtraChoreRow(chore: chore, isSelected: viewModel.selectedChores.contains(chore.id ?? "")) {
+                    ChoreListView(
+                        chores: viewModel.availableChores,
+                        actionType: .checkmark(
+                            isSelected: { chore in
+                                viewModel.selectedChores.contains(chore.id ?? "")
+                            },
+                            action: { chore in
                                 toggleSelection(for: chore)
                             }
+                        ),
+                        onDelete: nil,
+                        rowContent: { chore in
+                            ChoreRowView(chore: chore)
                         }
-                    }
+                    )
                     
                     // The submit button, only enabled if chores are selected.
                     Button("Submit Completed Chores") {
@@ -62,34 +70,5 @@ struct ExtraChoresView: View {
         } else {
             viewModel.selectedChores.insert(choreID)
         }
-    }
-}
-
-// A reusable row for the extra chores list.
-struct ExtraChoreRow: View {
-    let chore: Chore
-    let isSelected: Bool
-    let action: () -> Void
-    
-    var body: some View {
-        Button(action: action) {
-            HStack {
-                VStack(alignment: .leading) {
-                    Text(chore.name)
-                        .font(.headline)
-                    Text(chore.description)
-                        .font(.caption)
-                        .foregroundColor(.secondary)
-                }
-                
-                Spacer()
-                
-                Image(systemName: isSelected ? "checkmark.circle.fill" : "circle")
-                    .foregroundColor(isSelected ? .green : .secondary)
-                    .font(.title2)
-            }
-            .contentShape(Rectangle()) // Makes the whole row tappable
-        }
-        .buttonStyle(PlainButtonStyle())
     }
 }
